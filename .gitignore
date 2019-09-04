@@ -98,4 +98,6 @@ output.json
 .runtimeconfig.json
 .firebase/
 
+google-services.json
+
 # End of https://www.gitignore.io/api/android,firebase
