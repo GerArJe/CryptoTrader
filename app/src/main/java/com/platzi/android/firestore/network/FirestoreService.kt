@@ -30,4 +30,30 @@ class FirestoreService (val firebaseFirestore: FirebaseFirestore){
         firebaseFirestore.collection(CRYTO_COLLECTION_NAME).document(crypto.getDocumentId())
             .update("available", crypto.available)
     }
+
+    fun getCryptos(callback: Callback<List<Crypto>>){
+        firebaseFirestore.collection(CRYTO_COLLECTION_NAME)
+            .get()
+            .addOnSuccessListener { result ->
+                for (document in result){
+                    val cryptoList = result.toObjects(Crypto::class.java)
+                    callback!!.onSuccess(cryptoList)
+                    break
+                }
+            }
+            .addOnFailureListener { exception -> callback!!.onFailed(exception) }
+    }
+
+    fun findUserById(id: String, callback: Callback<User>){
+        firebaseFirestore.collection(USER_COLLECTION_NAME).document(id)
+            .get()
+            .addOnSuccessListener { result ->
+                if (result.data != null){
+                    callback.onSuccess(result.toObject(User::class.java))
+                }else{
+                    callback.onSuccess(null)
+                }
+            }
+            .addOnFailureListener { exception -> callback.onFailed(exception) }
+    }
 }
