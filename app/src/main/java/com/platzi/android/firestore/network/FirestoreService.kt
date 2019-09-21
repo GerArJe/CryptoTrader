@@ -56,4 +56,33 @@ class FirestoreService (val firebaseFirestore: FirebaseFirestore){
             }
             .addOnFailureListener { exception -> callback.onFailed(exception) }
     }
+
+    fun listenForUpdates(cryptos: List<Crypto>, listener: RealTimeDataListener<Crypto>) {
+        val cryptoReference = firebaseFirestore.collection(CRYTO_COLLECTION_NAME)
+        for (crypto in cryptos) {
+            cryptoReference.document(crypto.getDocumentId()).addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    listener.onError(e)
+                }
+                if (snapshot != null && snapshot.exists()) {
+                    listener.onDataChange(snapshot.toObject(Crypto::class.java)!!)
+                }
+            }
+        }
+    }
+
+    fun listenForUpdates(user: User, listener: RealTimeDataListener<User>){
+        val userReference = firebaseFirestore.collection(USER_COLLECTION_NAME)
+
+        userReference.document(user.username).addSnapshotListener{ snapshot, e ->
+            if (e != null) {
+                listener.onError(e)
+            }
+            if (snapshot != null && snapshot.exists()) {
+                listener.onDataChange(snapshot.toObject(user::class.java)!!)
+            }
+        }
+    }
+
+
 }

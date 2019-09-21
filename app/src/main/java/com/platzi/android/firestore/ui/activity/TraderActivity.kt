@@ -16,6 +16,7 @@ import com.platzi.android.firestore.model.Crypto
 import com.platzi.android.firestore.model.User
 import com.platzi.android.firestore.network.Callback
 import com.platzi.android.firestore.network.FirestoreService
+import com.platzi.android.firestore.network.RealTimeDataListener
 import com.squareup.picasso.Picasso
 import kotlinx.android.synthetic.main.activity_trader.*
 import java.lang.Exception
@@ -68,6 +69,7 @@ class TraderActivity : AppCompatActivity(), CryptosAdapterListener {
                             firestoreService.updateUser(user!!, null)
                         }
                         loadUserCryptos()
+                        addRealTimeDatabaseListener(user!!, cryptoList!!)
                     }
 
                     override fun onFailed(exception: Exception) {
@@ -84,6 +86,39 @@ class TraderActivity : AppCompatActivity(), CryptosAdapterListener {
 
             override fun onFailed(exception: Exception) {
                 Log.e("TraderActivity", "error loading cryptos", exception)
+                showGeneralServerErrorMessage()
+            }
+
+        })
+    }
+
+    private fun addRealTimeDatabaseListener(user: User, cryptoList: List<Crypto>) {
+
+        firestoreService.listenForUpdates(user, object : RealTimeDataListener<User>{
+            override fun onDataChange(updateData: User) {
+                this@TraderActivity.user = updateData
+                loadUserCryptos()
+            }
+
+            override fun onError(exeption: Exception) {
+                showGeneralServerErrorMessage()
+            }
+
+        })
+
+        firestoreService.listenForUpdates(cryptoList, object : RealTimeDataListener<Crypto>{
+            override fun onDataChange(updatedData: Crypto) {
+                var pos = 0
+                for (crypto in cryptosAdapter.cryptosList){
+                    if (crypto.name.equals(updatedData.name)){
+                        crypto.available = updatedData.available
+                        cryptosAdapter.notifyItemChanged(pos)
+                    }
+                    pos++
+                }
+            }
+
+            override fun onError(exeption: Exception) {
                 showGeneralServerErrorMessage()
             }
 
@@ -122,7 +157,19 @@ class TraderActivity : AppCompatActivity(), CryptosAdapterListener {
     }
 
     override fun onBuyCryptoClicked(crypto: Crypto) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        if(crypto.available > 0){
+            for (userCrypto in user!!.cryptosList!!){
+                if (userCrypto.name == crypto.name){
+                    userCrypto.available += 1
+                    break
+                }
+            }
+
+            crypto.available--
+
+            firestoreService.updateUser(user!!, null)
+            firestoreService.updateCrypto(crypto)
+        }
     }
 
 }
